@@ -16,8 +16,8 @@
  */
 
 import * as tf from '../index';
-import {ALL_ENVS, expectArraysClose} from '../test_util';
 import {describeWithFlags} from '../jasmine_util';
+import {ALL_ENVS, expectArraysClose} from '../test_util';
 import {Rank} from '../types';
 
 describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
@@ -240,46 +240,54 @@ describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
     expectArraysClose(result, expected);
   });
 
-  it('input=2x3x3x2,f=2,s=1,d=2,p=same,chMul=2', () => {
-    const fSize = 2;
-    const pad = 'same';
-    const stride = 1;
-    // const chMul = 2;
-    const inDepth = 2;
-    const dilation = 2;
-    const noDilation = 1;
+  it('input=2x3x3x2,f=2,s=1,d=2,p=same,chMul=2',
+     () => {
+       const fSize = 2;
+       const pad = 'same';
+       const stride = 1;
+       // const chMul = 2;
+       const inDepth = 2;
+       const dilation = 2;
+       const noDilation = 1;
 
-    const x = tf.tensor4d(
-        [
-          0.261945, 0.0528113, 0.656698,  0.127345,  0.610039, 0.169131,
-          0.458647, 0.0988288, 0.966109,  0.0421747, 0.82035,  0.274711,
-          0.359377, 0.512113,  0.689682,  0.941571,  0.31961,  0.743826,
-          0.858147, 0.984766,  0.926973,  0.579597,  0.444104, 0.505969,
-          0.241437, 0.937999,  0.0957074, 0.773611,  0.46023,  0.469379,
-          0.363789, 0.269745,  0.486136,  0.894215,  0.794299, 0.724615
-        ],
-        [2, 3, 3, inDepth]);
+       const x = tf.tensor4d(
+           [
+             0.261945, 0.0528113, 0.656698,  0.127345,  0.610039, 0.169131,
+             0.458647, 0.0988288, 0.966109,  0.0421747, 0.82035,  0.274711,
+             0.359377, 0.512113,  0.689682,  0.941571,  0.31961,  0.743826,
+             0.858147, 0.984766,  0.926973,  0.579597,  0.444104, 0.505969,
+             0.241437, 0.937999,  0.0957074, 0.773611,  0.46023,  0.469379,
+             0.363789, 0.269745,  0.486136,  0.894215,  0.794299, 0.724615
+           ],
+           [2, 3, 3, inDepth]);
 
-    const w = tf.stack([
-      tf.stack(
-          [
-            tf.tensor2d(
-                [0.240347, 0.906352, 0.478657, 0.825918], [fSize, fSize]),
-            tf.tensor2d(
-                [0.380769, 0.184705, 0.238241, 0.201907], [fSize, fSize])
-          ],
-          2),
-      tf.stack(
-          [
-            tf.tensor2d([0.294087, 0.181165, 0.191303, 0.7225], [fSize, fSize]),
-            tf.tensor2d(
-                [0.430064, 0.900622, 0.670338, 0.33478], [fSize, fSize])
-          ],
-          2)
-    ], 3) as tf.Tensor4D;
+       const w = tf.stack(
+                     [
+                       tf.stack(
+                           [
+                             tf.tensor2d(
+                                 [0.240347, 0.906352, 0.478657, 0.825918],
+                                 [fSize, fSize]),
+                             tf.tensor2d(
+                                 [0.380769, 0.184705, 0.238241, 0.201907],
+                                 [fSize, fSize])
+                           ],
+                           2),
+                       tf.stack(
+                           [
+                             tf.tensor2d(
+                                 [0.294087, 0.181165, 0.191303, 0.7225],
+                                 [fSize, fSize]),
+                             tf.tensor2d(
+                                 [0.430064, 0.900622, 0.670338, 0.33478],
+                                 [fSize, fSize])
+                           ],
+                           2)
+                     ],
+                     3) as tf.Tensor4D;
 
-    const fSizeDilated = fSize + (fSize - 1) * (dilation - 1);
-    const wDilated = tf.stack([
+       const fSizeDilated = fSize + (fSize - 1) * (dilation - 1);
+       const wDilated = tf.stack([
       tf.stack(
           [
             tf.tensor2d(
@@ -301,14 +309,14 @@ describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
           2)
     ], 3) as tf.Tensor4D;
 
-    const result = tf.depthwiseConv2d(x, w, stride, pad, 'NHWC', dilation);
+       const result = tf.depthwiseConv2d(x, w, stride, pad, 'NHWC', dilation);
 
-    const expectedResult =
-        tf.depthwiseConv2d(x, wDilated, stride, pad, 'NHWC', noDilation);
+       const expectedResult =
+           tf.depthwiseConv2d(x, wDilated, stride, pad, 'NHWC', noDilation);
 
-    expect(result.shape).toEqual(expectedResult.shape);
-    expectArraysClose(result, expectedResult);
-  });
+       expect(result.shape).toEqual(expectedResult.shape);
+       expectArraysClose(result, expectedResult);
+     });
 
   it('Tensor3D is allowed', () => {
     const fSize = 2;
@@ -351,7 +359,7 @@ describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
     const e = /Argument 'x' passed to 'depthwiseConv2d' must be a Tensor/;
     expect(
         () => tf.depthwiseConv2d(
-              {} as tf.Tensor3D, w, stride, pad, dataFormat, dilation))
+            {} as tf.Tensor3D, w, stride, pad, dataFormat, dilation))
         .toThrowError(e);
   });
 
@@ -370,5 +378,34 @@ describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
         () => tf.depthwiseConv2d(
             x, {} as tf.Tensor4D, stride, pad, dataFormat, dilation))
         .toThrowError(e);
+  });
+});
+
+describeWithFlags('benchmark depthwiseConv2D', {
+  'BACKEND': 'test-webgl',
+  'WEBGL_VERSION': 2
+}, () => {
+  // tslint:disable-next-line:ban
+  fit('benchmark', async () => {
+    const width = 64;
+    const height = width;
+    const batch = 2;
+    const depth = 32;
+    const inputShape: [number, number, number, number] =
+        [batch, height, width, depth];
+    const x = tf.randomUniform(inputShape) as tf.Tensor<Rank.R4>;
+    const filterWidth = 4;
+    const filterHeight = filterWidth;
+    const chMul = 8;
+    const filterShape: [number, number, number, number] =
+        [filterHeight, filterWidth, depth, chMul];
+    const filter = tf.randomUniform(filterShape) as tf.Tensor<Rank.R4>;
+
+    for (let i = 0; i < 20; i++) {
+      const start = performance.now();
+      tf.depthwiseConv2d(x, filter, 1, 'valid').dataSync();
+      const end = performance.now() - start;
+      console.log(i, end, 'ms');
+    }
   });
 });

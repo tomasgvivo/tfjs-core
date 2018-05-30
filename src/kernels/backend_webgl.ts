@@ -871,7 +871,9 @@ export class MathBackendWebGL implements KernelBackend {
   depthwiseConv2D(x: Tensor4D, filter: Tensor4D, convInfo: Conv2DInfo):
       Tensor4D {
     const program = new DepthwiseConv2DProgram(convInfo);
-    return this.compileAndRun(program, [x, filter]);
+    const [h, w, d, mul] = filter.shape;
+    // Flatten the width and height of the filter.
+    return this.compileAndRun(program, [x, filter.reshape([h * w, d, mul])]);
   }
 
   maxPool(x: Tensor4D, convInfo: Conv2DInfo): Tensor4D {

@@ -38,7 +38,26 @@ export class DepthwiseConv2DProgram implements GPGPUProgram {
     const filterWidth = convInfo.filterWidth;
     const channelMul = convInfo.outChannels / convInfo.inChannels;
 
+    const filterSize = filterHeight * filterWidth;
+    const nearestVec4 = Math.floor(filterSize / 4) * 4;
+    const vec4Remainder = filterSize % 4;
+
     this.userCode = `
+
+      float sampleX(int w, int batch, int xRCorner, int xCCorner, int d1) {
+        int wR = w / ${filterWidth};
+        int xR = xRCorner + wR * ${dilationHeight};
+        if (xR < 0 || xR >= ${xNumRows}) {
+          return 0.0;
+        }
+        int wC = w - wR * ${filterWidth};
+        int xC = xCCorner + wC * ${dilationWidth};
+        if (xC < 0 || xC >= ${xNumCols}) {
+          return 0.0;
+        }
+        return getX(batch, xR, xC, d1);
+      }
+
       const ivec2 strides = ivec2(${strideHeight}, ${strideWidth});
       const ivec2 pads = ivec2(${padTop}, ${padLeft});
 
@@ -56,26 +75,49 @@ export class DepthwiseConv2DProgram implements GPGPUProgram {
         // Convolve x(?, ?, d1) with w(:, :, d1, q) to get y(yR, yC, d2).
         // ? = to be determined. : = across all values in that axis.
         float dotProd = 0.0;
-        // TODO(dsmilkov): Flatten the two for loops and vec4 the operations.
-        for (int wR = 0; wR < ${filterHeight}; wR++) {
-          int xR = xRCorner + wR * ${dilationHeight};
 
-          if (xR < 0 || xR >= ${xNumRows}) {
-            continue;
-          }
-
-          for (int wC = 0; wC < ${filterWidth}; wC++) {
-            int xC = xCCorner + wC * ${dilationWidth};
-
-            if (xC < 0 || xC >= ${xNumCols}) {
-              continue;
-            }
-
-            float xVal = getX(batch, xR, xC, d1);
-            float wVal = getW(wR, wC, d1, q);
-            dotProd += xVal * wVal;
-          }
+        for (int w = 0; w < ${nearestVec4}; w += 4) {
+          vec4 xValues = vec4(
+            sampleX(w, batch, xRCorner, xCCorner, d1),
+            sampleX(w + 1, batch, xRCorner, xCCorner, d1),
+            sampleX(w + 2, batch, xRCorner, xCCorner, d1),
+            sampleX(w + 3, batch, xRCorner, xCCorner, d1)
+          );
+          vec4 wValues = vec4(
+            getW(w, d1, q),
+            getW(w + 1, d1, q),
+            getW(w + 2, d1, q),
+            getW(w + 3, d1, q)
+          );
+          dotProd += dot(xValues, wValues);
         }
+        if (${vec4Remainder === 1}) {
+          dotProd += sampleX(${nearestVec4}, batch, xRCorner, xCCorner, d1) *
+              getW(${nearestVec4}, d1, q);
+        } else if (${vec4Remainder === 2}) {
+          vec2 xValues = vec2(
+            sampleX(${nearestVec4}, batch, xRCorner, xCCorner, d1),
+            sampleX(${nearestVec4} + 1, batch, xRCorner, xCCorner, d1)
+          );
+          vec2 wValues = vec2(
+            getW(${nearestVec4}, d1, q),
+            getW(${nearestVec4} + 1, d1, q)
+          );
+          dotProd += dot(xValues, wValues);
+        } else if (${vec4Remainder === 3}) {
+          vec3 xValues = vec3(
+            sampleX(${nearestVec4}, batch, xRCorner, xCCorner, d1),
+            sampleX(${nearestVec4} + 1, batch, xRCorner, xCCorner, d1),
+            sampleX(${nearestVec4} + 2, batch, xRCorner, xCCorner, d1)
+          );
+          vec3 wValues = vec3(
+            getW(${nearestVec4}, d1, q),
+            getW(${nearestVec4} + 1, d1, q),
+            getW(${nearestVec4} + 2, d1, q)
+          );
+          dotProd += dot(xValues, wValues);
+        }
+
         setOutput(dotProd);
       }
     `;
