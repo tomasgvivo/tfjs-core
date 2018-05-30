@@ -381,31 +381,32 @@ describeWithFlags('depthwiseConv2D', ALL_ENVS, () => {
   });
 });
 
-describeWithFlags('benchmark depthwiseConv2D', {
-  'BACKEND': 'test-webgl',
-  'WEBGL_VERSION': 2
-}, () => {
-  // tslint:disable-next-line:ban
-  fit('benchmark', async () => {
-    const width = 64;
-    const height = width;
-    const batch = 2;
-    const depth = 32;
-    const inputShape: [number, number, number, number] =
-        [batch, height, width, depth];
-    const x = tf.randomUniform(inputShape) as tf.Tensor<Rank.R4>;
-    const filterWidth = 4;
-    const filterHeight = filterWidth;
-    const chMul = 8;
-    const filterShape: [number, number, number, number] =
-        [filterHeight, filterWidth, depth, chMul];
-    const filter = tf.randomUniform(filterShape) as tf.Tensor<Rank.R4>;
+describeWithFlags(
+  'benchmark depthwiseConv2D', {'BACKEND': 'test-webgl', 'WEBGL_VERSION': 2},
+  () => {
+    // tslint:disable-next-line:ban
+    fit('benchmark', async () => {
+      const width = 64;
+      const height = width;
+      const batch = 2;
+      const depth = 32;
+      const stride = 1;
+      const inputShape: [number, number, number, number] =
+          [batch, height, width, depth];
+      const x = tf.randomUniform(inputShape) as tf.Tensor<Rank.R4>;
+      const filterWidth = 7;
+      const filterHeight = filterWidth;
+      const chMul = 8;
+      const filterShape: [number, number, number, number] =
+          [filterHeight, filterWidth, depth, chMul];
+      const filter = tf.randomUniform(filterShape) as tf.Tensor<Rank.R4>;
+      const s = tf.scalar(2);
 
-    for (let i = 0; i < 20; i++) {
-      const start = performance.now();
-      tf.depthwiseConv2d(x, filter, 1, 'valid').dataSync();
-      const end = performance.now() - start;
-      console.log(i, end, 'ms');
-    }
+      for (let i = 0; i < 10; i++) {
+        const start = performance.now();
+        tf.depthwiseConv2d(x, filter, stride, 'valid');
+        tf.sqrt(s).dataSync();
+        console.log(i, performance.now() - start, 'ms');
+      }
+    });
   });
-});
