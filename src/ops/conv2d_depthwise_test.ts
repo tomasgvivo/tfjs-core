@@ -388,7 +388,7 @@ describeWithFlags(
     fit('benchmark', async () => {
       const width = 64;
       const height = width;
-      const batch = 2;
+      const batch = 10;
       const depth = 32;
       const stride = 1;
       const inputShape: [number, number, number, number] =
@@ -402,11 +402,17 @@ describeWithFlags(
       const filter = tf.randomUniform(filterShape) as tf.Tensor<Rank.R4>;
       const s = tf.scalar(2);
 
-      for (let i = 0; i < 10; i++) {
+      let total = 0;
+      const nruns = 20;
+      for (let i = 0; i < nruns; i++) {
         const start = performance.now();
         tf.depthwiseConv2d(x, filter, stride, 'valid');
-        tf.sqrt(s).dataSync();
-        console.log(i, performance.now() - start, 'ms');
+        tf.abs(s).dataSync();
+        const elapsed = performance.now() - start;
+        if (i >= 2) {
+          total += elapsed;
+        }
       }
+      console.log((total / (nruns - 2)).toFixed(2), 'ms');
     });
   });
